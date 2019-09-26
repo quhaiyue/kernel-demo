@@ -29,19 +29,19 @@ function activate(
   app: JupyterFrontEnd,
   restorer: ILayoutRestorer | null
 ): void {
-  let running = new RunningSessions({ manager: app.serviceManager });
-  running.id = 'data-relevance';
-  running.title.iconClass = 'jp-RunningIcon jp-SideBar-tabIcon';
-  running.title.caption = 'Running Terminals and Kernels';
+  let binded = new RunningSessions({ manager: app.serviceManager });
+  binded.id = 'data-relevance';
+  binded.title.iconClass = 'jp-TabDataIcon jp-SideBar-tabIcon';
+  binded.title.caption = 'Running Terminals and Kernels';
 
   // Let the application restorer track the running panel for restoration of
   // application state (e.g. setting the running panel as the current side bar
   // widget).
   if (restorer) {
-    restorer.add(running, 'running-sessions');
+    restorer.add(binded, 'running-sessions');
   }
 
-  running.sessionOpenRequested.connect((sender, model) => {
+  binded.sessionOpenRequested.connect((sender, model) => {
     let path = model.path;
     if (model.type.toLowerCase() === 'console') {
       void app.commands.execute('console:open', { path });
@@ -52,5 +52,5 @@ function activate(
 
   // Rank has been chosen somewhat arbitrarily to give priority to the running
   // sessions widget in the sidebar.
-  app.shell.add(running, 'left', { rank: 200 });
+  app.shell.add(binded, 'left', { rank: 800 });
 }
