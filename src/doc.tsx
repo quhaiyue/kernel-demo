@@ -314,6 +314,7 @@ function RunningSessionsComponent({
           future.onIOPub = msg => {
             console.log(msg.content); // Print rich output data.
           };
+          console.log(3)
         }}
       />
     </>
