@@ -22,7 +22,7 @@
   "style": "style/index.css",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/quhaiyue/kernel-demo.git.git"
+    "url": "https://github.com/quhaiyue/kernel-demo.git"
   },
   "scripts": {
     "build": "tsc",
