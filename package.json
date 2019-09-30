@@ -1,5 +1,5 @@
 {
-  "name": "@qhy/jupyterlab-kernel",
+  "name": "qhy-jupyterlabext",
   "version": "0.1.0",
   "description": "11",
   "keywords": [

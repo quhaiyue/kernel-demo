@@ -10,7 +10,7 @@
 ## Installation
 
 ```bash
-jupyter labextension install @qhy/jupyterlab-kernel
+jupyter labextension install qhy-jupyterlabext
 ```
 
 ## Development
