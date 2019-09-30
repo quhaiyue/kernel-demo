@@ -22,7 +22,7 @@
   "style": "style/index.css",
   "repository": {
     "type": "git",
-    "url": "https://github.com/quhaiyue/kernel-demo.git.git"
+    "url": "git+https://github.com/quhaiyue/kernel-demo.git.git"
   },
   "scripts": {
     "build": "tsc",
@@ -48,5 +48,8 @@
   ],
   "jupyterlab": {
     "extension": true
+  },
+  "directories": {
+    "lib": "lib"
   }
 }
