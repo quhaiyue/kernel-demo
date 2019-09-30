@@ -307,7 +307,7 @@ function RunningSessionsComponent({
         // })}
         bind={m => {
           sessionOpenRequested.emit(m)
-          let future = manager.sessions.connectTo(m).kernel.requestExecute({code: 'a = 1'});
+          let future = manager.sessions.connectTo(m).kernel.requestExecute({code: '% bind --task="qhy@Untitled.ipynb" --sources=[("a1", 70, 2589, 5433)]'});
           future.done.then(() => {
             console.log('Future is fulfilled');
           });
