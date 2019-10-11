@@ -10,7 +10,7 @@
 ## Installation
 
 ```bash
-jupyter labextension install jupyterlab-react
+jupyter labextension install qhy-bind
 ```
 
 ## Development
