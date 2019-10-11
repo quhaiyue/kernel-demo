@@ -1,6 +1,3 @@
-// Copyright (c) Jupyter Development Team.
-// Distributed under the terms of the Modified BSD License.
-
 import {
   ILayoutRestorer,
   JupyterFrontEnd,
@@ -15,7 +12,7 @@ import { RunningSessions } from './doc';
  */
 const extension: JupyterFrontEndPlugin<void> = {
   activate,
-  id: 'jupyterlab-kernel',
+  id: 'jupyterlab-react',
   autoStart: true,
   optional: [ILayoutRestorer],
 };
@@ -32,7 +29,7 @@ function activate(
   let binded = new RunningSessions({ manager: app.serviceManager });
   binded.id = 'data-relevance';
   binded.title.iconClass = 'jp-TabDataIcon jp-SideBar-tabIcon';
-  binded.title.caption = 'Running Terminals and Kernels';
+  binded.title.caption = 'Running Kernels';
 
   // Let the application restorer track the running panel for restoration of
   // application state (e.g. setting the running panel as the current side bar
@@ -54,3 +51,4 @@ function activate(
   // sessions widget in the sidebar.
   app.shell.add(binded, 'left', { rank: 800 });
 }
+

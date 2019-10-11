@@ -1,6 +1,6 @@
-# jupyterlab-kernel
+# jupyterlab-react
 
-11
+111
 
 
 ## Prerequisites
@@ -10,7 +10,7 @@
 ## Installation
 
 ```bash
-jupyter labextension install qhy-jupyterlabext
+jupyter labextension install jupyterlab-react
 ```
 
 ## Development

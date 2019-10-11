@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 
-import { IIterator, toArray } from '@phosphor/algorithm';
+import {IIterator, toArray} from '@phosphor/algorithm';
 
 import { ISignal, Signal } from '@phosphor/signaling';
 
@@ -18,6 +18,8 @@ import {
 import { PathExt } from '@jupyterlab/coreutils';
 
 import { ServiceManager, Session} from '@jupyterlab/services';
+
+// const fetch = require('node-fetch');
 
 /**
  * The class name added to a running widget.
@@ -107,12 +109,13 @@ type SessionProps<M> = {
      * Returns a list the running models.
      */
     running(): IIterator<M>;
+
   };
 
   /**
    * The function called when the shutdown button is pressed on an item.
    */
-  shutdown: (model: M) => void;
+  unbind: (model: M) => void;
 
   /**
    * The function called when the bind button is pressed on an item.
@@ -167,15 +170,15 @@ function Item<M>(props: SessionProps<M> & { model: M }) {
       </span>
       <button
         className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
-        onClick={() => props.shutdown(model)}
+        onClick={() => props.unbind(model)}
       >
-        SHUT&nbsp;DOWN
+        解绑
       </button>
       <button
         className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
         onClick={() => props.bind(model)}
       >
-        BIND&nbsp;DATA
+        绑定
       </button>
     </li>
   );
@@ -301,19 +304,95 @@ function RunningSessionsComponent({
           }
           return `Path: ${m.path}\nKernel: ${kernelName}`;
         }}
-        shutdown={m => manager.sessions.shutdown(m.id)}
-        // bind={m => manager.sessions.findById(m.id).then(s => {
-        //   console.log(s)
-        // })}
+        unbind={m => manager.sessions.shutdown(m.id)}
         bind={m => {
-          sessionOpenRequested.emit(m)
-          let future = manager.sessions.connectTo(m).kernel.requestExecute({code: '% bind --task="qhy@Untitled.ipynb" --sources=[("a1", 70, 2589, 5433)]'});
-          future.done.then(() => {
-            console.log('Future is fulfilled');
+          let url = window.location.href
+          let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+          console.log(baseUrl)
+          fetch(baseUrl + 'api/datasets/list?pageNo=1&pageSize=16&isPublic=1',{
+            method: 'get',
+            headers: {
+              'Accept': 'application/json, text/plain, */*',
+              'Content-Type': 'application/json',
+              'X-Request-With': 'XMLHttpRequest'
+            }
+          }).then(function(response:any){
+            console.log(response)
+            return response.json();
+          }).then(function(data:any){
+            console.log(data)
+          })
+
+          const posts: any[] = [
+            {id: 483, dataSetId: 435, key: "world-happiness-report-2019.csv", dataSetName: "demo_data", dsId: 70, dsName: "k8s-c1id", userId: 8, username: "admin1", dsUserId: 2},
+            {id: 746, dataSetId: 499, key: "stop_1M", dataSetName: "LA-stop_data_1M", dsId: 70, dsName: "k8s-c1id", userId: 2, username: "admin", dsUserId: 2},
+            {id: 3587, dataSetId: 1746, key: "FIFA_pos_mini", dataSetName: "FIFA_position_mini_s", dsId: 70, dsName: "k8s-c1id", userId: 2, username: "admin", dsUserId: 2},
+            {id: 5430, dataSetId: 2589, key: "pm_2_5_data", dataSetName: "city", dsId: 70, dsName: "k8s-c1id", userId: 2, username: "admin", dsUserId: 2},
+            {id: 5431, dataSetId: 2589, key: "pop_data", dataSetName: "city", dsId: 70, dsName: "k8s-c1id", userId: 2, username: "admin", dsUserId: 2},
+            {id: 5432, dataSetId: 2589, key: "aqi_data", dataSetName: "city", dsId: 70, dsName: "k8s-c1id", userId: 2, username: "admin", dsUserId: 2},
+            {id: 5433, dataSetId: 2589, key: "ahi_data", dataSetName: "city", dsId: 70, dsName: "k8s-c1id", userId: 2, username: "admin", dsUserId: 2}
+            ]
+          posts.map((e) => {
+            e.isChecked = false;
+            e.varName = '';
           });
-          future.onIOPub = msg => {
-            console.log(msg.content); // Print rich output data.
-          };
+          // 定义所选数组
+          let checkDataArr:any = []
+
+          // 定义你弹窗内部结构
+          const body = (
+            <ul className="bind-list-wrap n-li">
+              {posts.map((item) =>
+                <li key={item.id} className="flex align-center fb">
+                  <div className="flex align-center">
+                    <input type="checkbox" onChange={()=>{
+                      item.isChecked = !item.isChecked
+                      if (item.isChecked) {
+                        checkDataArr.push(item)
+                      } else {
+                        for (let i in checkDataArr) {
+                          if (checkDataArr[i].id === item.id) {
+                            checkDataArr.splice(i,1)
+                          }
+                        }
+                      }
+                    }}/>
+                    <span>{item.key}</span>
+                  </div>
+                  <input type="text" onChange={(e) => {
+                    item.varName = e.target.value
+                  }}/>
+                </li>
+              )}
+            </ul>
+          );
+          // 弹窗
+          void showDialog({
+            title: `数据列表`,
+            body,
+            buttons: [
+              Dialog.cancelButton({ label: '取消' }),
+              Dialog.warnButton({ label: '绑定' })
+            ]
+          }).then(result => {
+            let arr: any = [];
+            for (let v in checkDataArr) {
+              let str = '';
+              str = '("' + checkDataArr[v].varName + '", ' + checkDataArr[v].dsId + ', ' + checkDataArr[v].dataSetId + ', ' + checkDataArr[v].id + ')'
+              arr.push(str)
+            }
+            let code = '% bind --task="' + m.name + '" --sources=[' + arr.join(',') + ']'
+            if (result.button.accept) {
+              sessionOpenRequested.emit(m)
+              let future = manager.sessions.connectTo(m).kernel.requestExecute({code: code});
+              future.done.then(() => {
+                console.log('Future is fulfilled');
+              });
+              future.onIOPub = msg => {
+                console.log(msg.content); // Print rich output data.
+              };
+            }
+          });
         }}
       />
     </>

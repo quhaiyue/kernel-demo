@@ -176,3 +176,58 @@
 .jp-TabDataIcon {
   background-image: url('icons/ic_data_24px.svg');
 }
+.jp-Dialog-content{
+  max-width: 660px !important;
+  max-height:510px !important;
+}
+
+/*=================================================*/
+ul.n-li{
+  padding: 0;
+}
+.n-li li{
+  list-style: none;
+}
+.flex{
+  display: flex;
+  display: -ms-flexbox; /* IE 10 */
+}
+.column{
+  flex-direction: column;
+  -ms-flex-direction: column;/* IE 10 */
+}
+.fs{
+  justify-content: flex-start;
+  -ms-flex-pack:start;/* IE 10 */
+}
+.align-center{
+  align-items: center;
+  -ms-flex-align:center;/* IE 10 */
+}
+.fc{
+  justify-content: center;
+  -ms-flex-pack:center;/* IE 10 */
+}
+.fb{
+  justify-content:space-between;
+  -ms-flex-pack:justify;/* IE 10 */
+}
+.fe{
+  justify-content: flex-end;
+  -ms-flex-pack:end;/* IE 10 */
+}
+.fw{
+  flex-wrap:wrap;
+}
+/*===============================================*/
+.bind-list-wrap{
+  width: 600px;
+  height:450px;
+  overflow-y: auto;
+}
+.bind-list-wrap li{
+  border-bottom: 1px solid #ccc;
+  height: 50px;
+  line-height: 50px;
+  word-break: break-all;
+}
