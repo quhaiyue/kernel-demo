@@ -598,7 +598,7 @@
         "signature": "e513cc3eb943d0cdee9183fe1cb819568c5434e59257d4233e46a838a08a1078"
       },
       "/users/quhaiyue/demo/kernel-demo/src/doc.tsx": {
-        "version": "2bb2b32676bda2127792bc1fd73c826045e48b875eb748ba5005e4f630775de9",
+        "version": "e00824c3fee951bc1dd55663ca465344c5d845b5c6a8b736f7a340983fbf6d8e",
         "signature": "974021409af62399ae930dd82f4acc9a4e8f5a09162c7a79038d501ffbeed0a3"
       },
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/application/lib/tokens.d.ts": {

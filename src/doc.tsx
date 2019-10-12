@@ -312,6 +312,13 @@ function RunningSessionsComponent({
           });
           future.onIOPub = msg => {
             console.log(msg.content); // Print rich output data.
+            let a:any = msg.content
+            if (a.text && a.text.indexOf('quit successed') >  -1) {
+              alert('解绑成功！')
+            }
+            if (a.text && a.text.indexOf('quit fails') >  -1) {
+              alert('解绑失败！')
+            }
           };
         }}
         bind={m => {
@@ -403,6 +410,13 @@ function RunningSessionsComponent({
                 });
                 future.onIOPub = msg => {
                   console.log(msg.content); // Print rich output data.
+                  let a:any = msg.content
+                  if (a.text && a.text.indexOf('bind successed') >  -1){
+                    alert('绑定成功！')
+                  }
+                  if (a.text && a.text.indexOf('binding fails') >  -1){
+                    alert('绑定失败！')
+                  }
                 };
               }
             });
