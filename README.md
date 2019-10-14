@@ -10,7 +10,7 @@
 ## Installation
 
 ```bash
-jupyter labextension install qhy-binding
+jupyter labextension install qhy-binding-v
 ```
 
 ## Development

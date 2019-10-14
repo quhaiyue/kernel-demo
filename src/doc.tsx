@@ -18,6 +18,7 @@ import {
 import { PathExt } from '@jupyterlab/coreutils';
 
 import { ServiceManager, Session} from '@jupyterlab/services';
+import {any} from "prop-types";
 
 // const fetch = require('node-fetch');
 
@@ -113,7 +114,7 @@ type SessionProps<M> = {
   };
 
   /**
-   * The function called when the shutdown button is pressed on an item.
+   * The function called when the unbind button is pressed on an item.
    */
   unbind: (model: M) => void;
 
@@ -121,6 +122,8 @@ type SessionProps<M> = {
    * The function called when the bind button is pressed on an item.
    */
   bind: (model: M) => void;
+
+  getBoundData: (model: M) => void;
 
   /**
    * The filter that is applied to the items from `runningChanged`.
@@ -153,6 +156,8 @@ type SessionProps<M> = {
    */
   available: boolean;
 };
+
+// declare function getCookie(domReadyCallback: (name:string) => any): any
 /**
  * PExecute and handle replies.
  */
@@ -179,6 +184,12 @@ function Item<M>(props: SessionProps<M> & { model: M }) {
         onClick={() => props.bind(model)}
       >
         绑定
+      </button>
+      <button
+        className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
+        onClick={() => props.getBoundData(model)}
+      >
+        数据
       </button>
     </li>
   );
@@ -213,6 +224,42 @@ function List<M>(props: SessionProps<M>) {
     </UseSignal>
   );
 }
+
+/**
+ * 获取cookie内容
+ */
+function getCookie (name:any){
+  var arr;
+  var reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+  if (arr = document.cookie.match(reg))
+    return unescape(arr[2]);
+  else
+    return null;
+}
+
+/**
+ * 向backend发送bind数据
+ */
+function bindToBackend(parmas: any) {
+  let url = window.location.href
+  let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+  fetch(baseUrl + 'api/binds/0',{
+    method: "POST",
+    body: JSON.stringify(parmas),
+    headers: {
+      'Accept': 'application/json, text/plain, */*',
+      'Content-Type': 'application/json',
+      'X-Request-With': 'XMLHttpRequest'
+    }
+  }).then(function(response:any){
+    return response.json();
+  }).then(function(data:any){
+    if (data.code === 201) {
+      console.log('绑定信息传递后台成功！')
+    }
+  })
+}
+
 
 /**
  * The Section component contains the shared look and feel for an interactive
@@ -324,6 +371,7 @@ function RunningSessionsComponent({
         bind={m => {
           let url = window.location.href
           let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+          console.log(m)
           console.log(baseUrl)
           var posts: any[] = []
           fetch(baseUrl + 'api/datasets/list?pageNo=1&pageSize=999&isPublic=2',{
@@ -395,13 +443,19 @@ function RunningSessionsComponent({
                 Dialog.warnButton({ label: '绑定' })
               ]
             }).then(result => {
+              console.log(m)
               let arr: any = [];
+              let bindDatasets: any = [];
               for (let v in checkDataArr) {
                 let str = '';
+                let obj = {id:any,varName:any};
                 str = '("' + checkDataArr[v].varName + '", ' + checkDataArr[v].dsId + ', ' + checkDataArr[v].dataSetId + ', ' + checkDataArr[v].id + ')'
+                obj.id = checkDataArr[v].id
+                obj.varName = checkDataArr[v].varName
                 arr.push(str)
+                bindDatasets.push(obj)
               }
-              let code = '% bind --task="' + m.name + '" --sources=[' + arr.join(',') + ']'
+              let code = '% bind --task="' + getCookie('username') +'@'+ m.path + '" --sources=[' + arr.join(',') + ']'
               if (result.button.accept) {
                 sessionOpenRequested.emit(m)
                 let future = manager.sessions.connectTo(m).kernel.requestExecute({code: code});
@@ -412,6 +466,11 @@ function RunningSessionsComponent({
                   console.log(msg.content); // Print rich output data.
                   let a:any = msg.content
                   if (a.text && a.text.indexOf('bind successed') >  -1){
+                    bindToBackend({
+                      action: 'bind',
+                      notebookId: getCookie('username') +'@'+ m.path,
+                      datasets: bindDatasets
+                    })
                     alert('绑定成功！')
                   }
                   if (a.text && a.text.indexOf('binding fails') >  -1){
@@ -419,6 +478,46 @@ function RunningSessionsComponent({
                   }
                 };
               }
+            });
+          })
+        }}
+        getBoundData={m => {
+          console.log(getCookie('username'))
+          let url = window.location.href
+          let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+          fetch(baseUrl + 'api/binds/0?notebookId='+getCookie('username')+'@'+m.path,{
+            method: 'get',
+            headers: {
+              'Accept': 'application/json, text/plain, */*',
+              'Content-Type': 'application/json',
+              'X-Request-With': 'XMLHttpRequest'
+            }
+          }).then(function(response:any){
+            return response.json();
+          }).then(function(data:any){
+            let dataArr:any = data.binds
+            // 定义你弹窗内部结构
+            const body = (
+              <ul className="bind-list-wrap n-li">
+                {dataArr.map((item:any) =>
+                  <li key={item.id} className="flex align-center fb">
+                    <div className="flex align-center">
+                      <span>{item.key}</span>
+                    </div>
+                    <div>{item.varName}</div>
+                  </li>
+                )}
+              </ul>
+            );
+            // 弹窗
+            void showDialog({
+              title: `已选数据列表`,
+              body,
+              buttons: [
+                Dialog.cancelButton({ label: '关闭' }),
+              ]
+            }).then(result => {
+              if (result.button.accept) {}
             });
           })
         }}
