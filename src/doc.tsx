@@ -19,6 +19,7 @@ import { PathExt } from '@jupyterlab/coreutils';
 
 import { ServiceManager, Session} from '@jupyterlab/services';
 import {any} from "prop-types";
+import Toast from './notice'
 
 // const fetch = require('node-fetch');
 
@@ -310,10 +311,10 @@ interface IRunningSessionsProps {
 }
 
 function RunningSessionsComponent({
-                                    session,
-                                    manager,
-                                    sessionOpenRequested
-                                  }: IRunningSessionsProps) {
+  session,
+  manager,
+  sessionOpenRequested
+}: IRunningSessionsProps) {
   return (
     <>
       {/*刷新*/}
@@ -361,18 +362,17 @@ function RunningSessionsComponent({
             console.log(msg.content); // Print rich output data.
             let a:any = msg.content
             if (a.text && a.text.indexOf('quit successed') >  -1) {
-              alert('解绑成功！')
+              Toast.success('解绑成功！',2000,()=>{})
             }
             if (a.text && a.text.indexOf('quit fails') >  -1) {
-              alert('解绑失败！')
+              Toast.error('解绑失败！',2000,()=>{})
             }
           };
         }}
         bind={m => {
           let url = window.location.href
           let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
-          console.log(m)
-          console.log(baseUrl)
+          let hideLoading =  Toast.loading('加载中...',0, ()=>{})
           var posts: any[] = []
           fetch(baseUrl + 'api/datasets/list?pageNo=1&pageSize=999&isPublic=2',{
             method: 'get',
@@ -385,6 +385,7 @@ function RunningSessionsComponent({
             console.log(response)
             return response.json();
           }).then(function(data:any){
+            hideLoading()
             let dataArr = data.datasets
             for (let i in dataArr) {
               for (let n in dataArr[i].samples) {
@@ -471,10 +472,10 @@ function RunningSessionsComponent({
                       notebookId: getCookie('username') +'@'+ m.path,
                       datasets: bindDatasets
                     })
-                    alert('绑定成功！')
+                    Toast.success('绑定成功！',2000,()=>{})
                   }
                   if (a.text && a.text.indexOf('binding fails') >  -1){
-                    alert('绑定失败！')
+                    Toast.error('绑定失败！',2000,()=>{})
                   }
                 };
               }
@@ -485,6 +486,7 @@ function RunningSessionsComponent({
           console.log(getCookie('username'))
           let url = window.location.href
           let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+          let hideLoading =  Toast.loading('加载中...',0, ()=>{})
           fetch(baseUrl + 'api/binds/0?notebookId='+getCookie('username')+'@'+m.path,{
             method: 'get',
             headers: {
@@ -495,6 +497,8 @@ function RunningSessionsComponent({
           }).then(function(response:any){
             return response.json();
           }).then(function(data:any){
+            console.log('new')
+            hideLoading()
             let dataArr:any = data.binds
             // 定义你弹窗内部结构
             const body = (

@@ -102,12 +102,12 @@
         "signature": "2bbdfc5ed049f38787376bb01b7bcfe5299eac853c76c16a3e21ab0279078314"
       },
       "/users/quhaiyue/demo/kernel-demo/node_modules/csstype/index.d.ts": {
-        "version": "599c67cf56a35a8a7bee5bcd877dece4cb71553efb763ebf1050c6987acfaefc",
-        "signature": "599c67cf56a35a8a7bee5bcd877dece4cb71553efb763ebf1050c6987acfaefc"
+        "version": "9e89b1bb8360de8b984781243a920ac631ac5261cf7bf882e556c6c7dbf2e4ee",
+        "signature": "9e89b1bb8360de8b984781243a920ac631ac5261cf7bf882e556c6c7dbf2e4ee"
       },
       "/users/quhaiyue/demo/kernel-demo/node_modules/@types/prop-types/index.d.ts": {
-        "version": "0d6e7a44a6b86683505d6aba8ce4d8b0566c6414300e40e015cafe97538b5106",
-        "signature": "0d6e7a44a6b86683505d6aba8ce4d8b0566c6414300e40e015cafe97538b5106"
+        "version": "a7e32dcb90bf0c1b7a1e4ac89b0f7747cbcba25e7beddc1ebf17be1e161842ad",
+        "signature": "a7e32dcb90bf0c1b7a1e4ac89b0f7747cbcba25e7beddc1ebf17be1e161842ad"
       },
       "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react/index.d.ts": {
         "version": "eb4066912697a3d80ef501b715375bd8cb18e5ef1d79ec964522614e74d7ee15",
@@ -597,8 +597,20 @@
         "version": "e513cc3eb943d0cdee9183fe1cb819568c5434e59257d4233e46a838a08a1078",
         "signature": "e513cc3eb943d0cdee9183fe1cb819568c5434e59257d4233e46a838a08a1078"
       },
+      "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react-dom/index.d.ts": {
+        "version": "bf0ec5e3e08de5ea2efafbb47c8b4c0ed803c0d0ad9668be1b6a4fee7e558ecc",
+        "signature": "bf0ec5e3e08de5ea2efafbb47c8b4c0ed803c0d0ad9668be1b6a4fee7e558ecc"
+      },
+      "/users/quhaiyue/demo/kernel-demo/src/toast.tsx": {
+        "version": "8462b9ff6b62b5411399ee8627dbfd4c82c483a792be5adc9f47a3576c925aa2",
+        "signature": "ef25ccb6f90e53ce41e160837dce085af970cb067d3d14c5e8f1386272b95e32"
+      },
+      "/users/quhaiyue/demo/kernel-demo/src/notice.tsx": {
+        "version": "f61290fbe4deeff03fded171cd6af6bcb0ab388362f30c572524c2e987bf7cbc",
+        "signature": "0197f5d3eaf47335b918de2cabb2ab72126413196cee2e80a45cdf99aa6dbc6f"
+      },
       "/users/quhaiyue/demo/kernel-demo/src/doc.tsx": {
-        "version": "6f12cf87b3ecc75fe51536d2fe0dfbe1ec9f8fb3d3403289d955d98233a5e93d",
+        "version": "162f33233b448aaa1e9e15832b8f4ed90f65f36fb5e7dc9c711fd40703f3a666",
         "signature": "974021409af62399ae930dd82f4acc9a4e8f5a09162c7a79038d501ffbeed0a3"
       },
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/application/lib/tokens.d.ts": {
@@ -1353,6 +1365,17 @@
         "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/widgettracker.d.ts",
         "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/windowresolver.d.ts"
       ],
+      "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react-dom/index.d.ts": [
+        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react/index.d.ts"
+      ],
+      "/users/quhaiyue/demo/kernel-demo/src/toast.tsx": [
+        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react/index.d.ts"
+      ],
+      "/users/quhaiyue/demo/kernel-demo/src/notice.tsx": [
+        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react/index.d.ts",
+        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react-dom/index.d.ts",
+        "/users/quhaiyue/demo/kernel-demo/src/toast.tsx"
+      ],
       "/users/quhaiyue/demo/kernel-demo/src/doc.tsx": [
         "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react/index.d.ts",
         "/users/quhaiyue/demo/kernel-demo/node_modules/@phosphor/algorithm/lib/index.d.ts",
@@ -1360,7 +1383,8 @@
         "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/index.d.ts",
         "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/coreutils/lib/index.d.ts",
         "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/services/lib/index.d.ts",
-        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/prop-types/index.d.ts"
+        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/prop-types/index.d.ts",
+        "/users/quhaiyue/demo/kernel-demo/src/notice.tsx"
       ],
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/application/lib/tokens.d.ts": [
         "/users/quhaiyue/demo/kernel-demo/node_modules/@phosphor/commands/lib/index.d.ts",
@@ -1602,6 +1626,12 @@
       ],
       "/users/quhaiyue/demo/kernel-demo/src/index.ts": [
         "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/application/lib/index.d.ts"
+      ],
+      "/users/quhaiyue/demo/kernel-demo/src/toast.tsx": [
+        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react/index.d.ts"
+      ],
+      "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react-dom/index.d.ts": [
+        "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react/index.d.ts"
       ],
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/toolbar.d.ts": [
         "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/vdom.d.ts",
@@ -2559,6 +2589,9 @@
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/thememanager.d.ts",
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/windowresolver.d.ts",
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/apputils/lib/index.d.ts",
+      "/users/quhaiyue/demo/kernel-demo/node_modules/@types/react-dom/index.d.ts",
+      "/users/quhaiyue/demo/kernel-demo/src/toast.tsx",
+      "/users/quhaiyue/demo/kernel-demo/src/notice.tsx",
       "/users/quhaiyue/demo/kernel-demo/src/doc.tsx",
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/application/lib/tokens.d.ts",
       "/users/quhaiyue/demo/kernel-demo/node_modules/@jupyterlab/application/lib/connectionlost.d.ts",

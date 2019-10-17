@@ -2,3 +2,4 @@
 @import url('~@jupyterlab/application/style/index.css');
 
 @import url('./base.css');
+@import url('./toast.css');
