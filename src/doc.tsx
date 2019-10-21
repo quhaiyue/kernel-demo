@@ -11,8 +11,7 @@ import { ReactWidget, UseSignal } from '@jupyterlab/apputils';
 
 import {
   Dialog,
-  showDialog,
-  ToolbarButtonComponent
+  showDialog
 } from '@jupyterlab/apputils';
 
 import { PathExt } from '@jupyterlab/coreutils';
@@ -37,11 +36,6 @@ const HEADER_CLASS = 'jp-RunningSessions-header';
  * The class name added to the running terminal sessions section.
  */
 const SECTION_CLASS = 'jp-RunningSessions-section';
-
-/**
- * The class name added to the running sessions section header.
- */
-const SECTION_HEADER_CLASS = 'jp-RunningSessions-sectionHeader';
 
 /**
  * The class name added to a section container.
@@ -153,6 +147,16 @@ type SessionProps<M> = {
   labelTitle?: (model: M) => string;
 
   /**
+   * 是否显示按钮
+   */
+  isShowButton: boolean;
+
+  /**
+   * 操作的id
+   */
+  checkedId: string;
+
+  /**
    * Flag that sets whether it sessions should be displayed.
    */
   available: boolean;
@@ -177,12 +181,14 @@ function Item<M>(props: SessionProps<M> & { model: M }) {
       <button
         className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
         onClick={() => props.unbind(model)}
+        style={{display:props.isShowButton ? 'none' : props.label(model) == props.checkedId ? 'block':'none'}}
       >
         解绑
       </button>
       <button
         className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
         onClick={() => props.bind(model)}
+        style={{display:props.isShowButton ? 'block' : props.label(model) == props.checkedId ? 'none':'block'}}
       >
         绑定
       </button>
@@ -269,30 +275,12 @@ function bindToBackend(parmas: any) {
  * It is specialized for each based on it's props.
  */
 function Section<M>(props: SessionProps<M>) {
-  function onShutdown() {
-    void showDialog({
-      title: `Shut Down All ${props.name} Sessions?`,
-      buttons: [
-        Dialog.cancelButton(),
-        Dialog.warnButton({ label: 'Shut Down All' })
-      ]
-    }).then(result => {
-      if (result.button.accept) {
-        props.manager.shutdownAll();
-      }
-    });
-  }
   return (
     <div className={SECTION_CLASS}>
       {props.available && (
         <>
-          <header className={SECTION_HEADER_CLASS}>
-            <h2>{props.name} Sessions</h2>
-            <ToolbarButtonComponent
-              tooltip={`Shut Down All ${props.name} Sessions…`}
-              iconClassName="jp-CloseIcon"
-              onClick={onShutdown}
-            />
+          <header>
+            <h2>数据绑定</h2>
           </header>
 
           <div className={CONTAINER_CLASS}>
@@ -310,225 +298,241 @@ interface IRunningSessionsProps {
   sessionOpenRequested: Signal<RunningSessions, Session.IModel>;
 }
 
-function RunningSessionsComponent({
-  session,
-  manager,
-  sessionOpenRequested
-}: IRunningSessionsProps) {
-  return (
-    <>
-      {/*刷新*/}
-      <div className={HEADER_CLASS}>
-        <ToolbarButtonComponent
-          tooltip="Refresh List"
-          iconClassName="jp-RefreshIcon"
-          onClick={() => {
-            void manager.sessions.refreshRunning();
-          }}
-        />
-      </div>
-      <Section
-        openRequested={sessionOpenRequested}
-        manager={manager.sessions}
-        filterRunning={m =>
-          !!((m.name || PathExt.basename(m.path)).indexOf('.') !== -1 || m.name)
-        }
-        name="Kernel"
-        iconClass={m => {
-          if ((m.name || PathExt.basename(m.path)).indexOf('.ipynb') !== -1) {
-            return NOTEBOOK_ICON_CLASS;
-          } else if (m.type.toLowerCase() === 'console') {
-            return CONSOLE_ICON_CLASS;
-          }
-          return FILE_ICON_CLASS;
-        }}
-        label={m => m.name || PathExt.basename(m.path)}
-        available={true}
-        labelTitle={m => {
-          let kernelName = m.kernel.name;
-          if (manager.specs) {
-            const spec = manager.specs.kernelspecs[kernelName];
-            kernelName = spec ? spec.display_name : 'unknown';
-          }
-          return `Path: ${m.path}\nKernel: ${kernelName}`;
-        }}
-        unbind={m => {
-          sessionOpenRequested.emit(m)
-          let future = manager.sessions.connectTo(m).kernel.requestExecute({code: '% quit'});
-          future.done.then(() => {
-            console.log('Future is fulfilled');
-          });
-          future.onIOPub = msg => {
-            console.log(msg.content); // Print rich output data.
-            let a:any = msg.content
-            if (a.text && a.text.indexOf('quit successed') >  -1) {
-              Toast.success('解绑成功！',2000,()=>{})
-            }
-            if (a.text && a.text.indexOf('quit fails') >  -1) {
-              Toast.error('解绑失败！',2000,()=>{})
-            }
-          };
-        }}
-        bind={m => {
-          let url = window.location.href
-          let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
-          let hideLoading =  Toast.loading('加载中...',0, ()=>{})
-          var posts: any[] = []
-          fetch(baseUrl + 'api/datasets/list?pageNo=1&pageSize=999&isPublic=2',{
-            method: 'get',
-            headers: {
-              'Accept': 'application/json, text/plain, */*',
-              'Content-Type': 'application/json',
-              'X-Request-With': 'XMLHttpRequest'
-            }
-          }).then(function(response:any){
-            console.log(response)
-            return response.json();
-          }).then(function(data:any){
-            hideLoading()
-            let dataArr = data.datasets
-            for (let i in dataArr) {
-              for (let n in dataArr[i].samples) {
-                let obj:any = {}
-                obj.id = dataArr[i].samples[n].datasetsId
-                obj.dataSetId = dataArr[i].dataSourceId
-                obj.key = dataArr[i].samples[n].key
-                obj.dataSetName = dataArr[i].dataSourceName
-                obj.dsId = dataArr[i].samples[n].dsId
-                obj.userId = dataArr[i].userId
-                obj.username = dataArr[i].username
-                posts.push(obj)
-              }
-            }
-            console.log(posts)
-            posts.map((e) => {
-              e.isChecked = false;
-              e.varName = '';
-            });
-            // 定义所选数组
-            let checkDataArr:any = []
+interface IHomePageState {
+  displayStyle: boolean;
+  name: string
+}
 
-            // 定义你弹窗内部结构
-            const body = (
-              <ul className="bind-list-wrap n-li">
-                {posts.map((item) =>
-                  <li key={item.id} className="flex align-center fb">
-                    <div className="flex align-center">
-                      <input type="checkbox" onChange={()=>{
-                        item.isChecked = !item.isChecked
-                        if (item.isChecked) {
-                          checkDataArr.push(item)
-                        } else {
-                          for (let i in checkDataArr) {
-                            if (checkDataArr[i].id === item.id) {
-                              checkDataArr.splice(i,1)
+
+class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHomePageState> {
+  constructor(props:IRunningSessionsProps) {
+    super(props);
+    this.state = { displayStyle: true, name: ''};
+  }
+  render() {
+    const { manager, sessionOpenRequested } = this.props;
+    return (
+      <>
+        {/*刷新*/}
+        <div className={HEADER_CLASS}> </div>
+        <Section
+          openRequested={sessionOpenRequested}
+          manager={manager.sessions}
+          filterRunning={m =>
+            !!((m.name || PathExt.basename(m.path)).indexOf('.') !== -1 || m.name)
+          }
+          name="Kernel"
+          iconClass={m => {
+            if ((m.name || PathExt.basename(m.path)).indexOf('.ipynb') !== -1) {
+              return NOTEBOOK_ICON_CLASS;
+            } else if (m.type.toLowerCase() === 'console') {
+              return CONSOLE_ICON_CLASS;
+            }
+            return FILE_ICON_CLASS;
+          }}
+          label={m => m.name || PathExt.basename(m.path)}
+          available={true}
+          isShowButton={this.state.displayStyle}
+          labelTitle={m => {
+            let kernelName = m.kernel.name;
+            if (manager.specs) {
+              const spec = manager.specs.kernelspecs[kernelName];
+              kernelName = spec ? spec.display_name : 'unknown';
+            }
+            return `Path: ${m.path}\nKernel: ${kernelName}`;
+          }}
+          checkedId={this.state.name}
+          unbind={m => {
+            const _self = this;
+            sessionOpenRequested.emit(m)
+            let future = manager.sessions.connectTo(m).kernel.requestExecute({code: '% quit'});
+            future.done.then(() => {
+              console.log('Future is fulfilled');
+            });
+            future.onIOPub = msg => {
+              console.log(msg.content); // Print rich output data.
+              let a:any = msg.content
+              if (a.text && a.text.indexOf('quit successed') >  -1) {
+                Toast.success('解绑成功！',2000,()=>{})
+                _self.setState({
+                  displayStyle: true,
+                });
+                _self.setState({
+                  name:m.path,
+                });
+              }
+              if (a.text && a.text.indexOf('quit fails') >  -1) {
+                Toast.error('解绑失败！',2000,()=>{})
+              }
+            };
+          }}
+          bind={m => {
+            const _self = this;
+            let url = window.location.href;
+            let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+            let hideLoading =  Toast.loading('加载中...',0, ()=>{})
+            var posts: any[] = []
+            fetch(baseUrl + 'api/datasets/list?pageNo=1&pageSize=999&isPublic=2',{
+              method: 'get',
+              headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json',
+                'X-Request-With': 'XMLHttpRequest'
+              }
+            }).then(function(response:any){
+              console.log(response)
+              return response.json();
+            }).then(function(data:any){
+              hideLoading()
+              let dataArr = data.datasets
+              for (let i in dataArr) {
+                for (let n in dataArr[i].samples) {
+                  let obj:any = {}
+                  obj.id = dataArr[i].samples[n].datasetsId
+                  obj.dataSetId = dataArr[i].dataSourceId
+                  obj.key = dataArr[i].samples[n].key
+                  obj.dataSetName = dataArr[i].dataSourceName
+                  obj.dsId = dataArr[i].samples[n].dsId
+                  obj.userId = dataArr[i].userId
+                  obj.username = dataArr[i].username
+                  posts.push(obj)
+                }
+              }
+              posts.map((e) => {
+                e.isChecked = false;
+                e.varName = '';
+              });
+              // 定义所选数组
+              let checkDataArr:any = []
+
+              // 定义你弹窗内部结构
+              const body = (
+                <ul className="bind-list-wrap n-li">
+                  {posts.map((item) =>
+                    <li key={item.id} className="flex align-center fb">
+                      <div className="flex align-center">
+                        <input type="checkbox" onChange={()=>{
+                          item.isChecked = !item.isChecked
+                          if (item.isChecked) {
+                            checkDataArr.push(item)
+                          } else {
+                            for (let i in checkDataArr) {
+                              if (checkDataArr[i].id === item.id) {
+                                checkDataArr.splice(i,1)
+                              }
                             }
                           }
-                        }
+                        }}/>
+                        <span>{item.key}</span>
+                      </div>
+                      <input type="text" onChange={(e) => {
+                        item.varName = e.target.value
                       }}/>
-                      <span>{item.key}</span>
-                    </div>
-                    <input type="text" onChange={(e) => {
-                      item.varName = e.target.value
-                    }}/>
-                  </li>
-                )}
-              </ul>
-            );
-            // 弹窗
-            void showDialog({
-              title: `数据列表`,
-              body,
-              buttons: [
-                Dialog.cancelButton({ label: '取消' }),
-                Dialog.warnButton({ label: '绑定' })
-              ]
-            }).then(result => {
-              console.log(m)
-              let arr: any = [];
-              let bindDatasets: any = [];
-              for (let v in checkDataArr) {
-                let str = '';
-                let obj = {id:any,varName:any};
-                str = '("' + checkDataArr[v].varName + '", ' + checkDataArr[v].dsId + ', ' + checkDataArr[v].dataSetId + ', ' + checkDataArr[v].id + ')'
-                obj.id = checkDataArr[v].id
-                obj.varName = checkDataArr[v].varName
-                arr.push(str)
-                bindDatasets.push(obj)
+                    </li>
+                  )}
+                </ul>
+              );
+              // 弹窗
+              void showDialog({
+                title: `数据列表`,
+                body,
+                buttons: [
+                  Dialog.cancelButton({ label: '取消' }),
+                  Dialog.warnButton({ label: '绑定' })
+                ]
+              }).then(result => {
+                let arr: any = [];
+                let bindDatasets: any = [];
+                for (let v in checkDataArr) {
+                  let str = '';
+                  let obj = {id:any,varName:any};
+                  str = '("' + checkDataArr[v].varName + '", ' + checkDataArr[v].dsId + ', ' + checkDataArr[v].dataSetId + ', ' + checkDataArr[v].id + ')'
+                  obj.id = checkDataArr[v].id
+                  obj.varName = checkDataArr[v].varName
+                  arr.push(str)
+                  bindDatasets.push(obj)
+                }
+                let code = '% bind --task="' + getCookie('username') +'@'+ m.path + '" --sources=[' + arr.join(',') + ']'
+                if (result.button.accept) {
+                  sessionOpenRequested.emit(m)
+                  let future = manager.sessions.connectTo(m).kernel.requestExecute({code: code});
+                  future.done.then(() => {
+                    console.log('Future is fulfilled');
+                  });
+                  future.onIOPub = msg => {
+                    console.log(msg.content); // Print rich output data.
+                    let a:any = msg.content
+                    if (a.text && a.text.indexOf('bind successed') >  -1){
+                      bindToBackend({
+                        action: 'bind',
+                        notebookId: getCookie('username') +'@'+ m.path,
+                        datasets: bindDatasets
+                      })
+
+                      _self.setState({
+                        displayStyle: false,
+                      });
+                      _self.setState({
+                        name:m.path,
+                      });
+
+                      Toast.success('绑定成功！',2000,()=>{})
+                    }
+                    if (a.text && a.text.indexOf('binding fails') >  -1){
+                      Toast.error('绑定失败！',2000,()=>{})
+                    }
+                  };
+                }
+              });
+            })
+          }}
+          getBoundData={m => {
+            let url = window.location.href
+            let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+            let hideLoading =  Toast.loading('加载中...',0, ()=>{})
+            fetch(baseUrl + 'api/binds/0?notebookId='+getCookie('username')+'@'+m.path,{
+              method: 'get',
+              headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json',
+                'X-Request-With': 'XMLHttpRequest'
               }
-              let code = '% bind --task="' + getCookie('username') +'@'+ m.path + '" --sources=[' + arr.join(',') + ']'
-              if (result.button.accept) {
-                sessionOpenRequested.emit(m)
-                let future = manager.sessions.connectTo(m).kernel.requestExecute({code: code});
-                future.done.then(() => {
-                  console.log('Future is fulfilled');
-                });
-                future.onIOPub = msg => {
-                  console.log(msg.content); // Print rich output data.
-                  let a:any = msg.content
-                  if (a.text && a.text.indexOf('bind successed') >  -1){
-                    bindToBackend({
-                      action: 'bind',
-                      notebookId: getCookie('username') +'@'+ m.path,
-                      datasets: bindDatasets
-                    })
-                    Toast.success('绑定成功！',2000,()=>{})
-                  }
-                  if (a.text && a.text.indexOf('binding fails') >  -1){
-                    Toast.error('绑定失败！',2000,()=>{})
-                  }
-                };
-              }
-            });
-          })
-        }}
-        getBoundData={m => {
-          console.log(getCookie('username'))
-          let url = window.location.href
-          let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
-          let hideLoading =  Toast.loading('加载中...',0, ()=>{})
-          fetch(baseUrl + 'api/binds/0?notebookId='+getCookie('username')+'@'+m.path,{
-            method: 'get',
-            headers: {
-              'Accept': 'application/json, text/plain, */*',
-              'Content-Type': 'application/json',
-              'X-Request-With': 'XMLHttpRequest'
-            }
-          }).then(function(response:any){
-            return response.json();
-          }).then(function(data:any){
-            console.log('new')
-            hideLoading()
-            let dataArr:any = data.binds
-            // 定义你弹窗内部结构
-            const body = (
-              <ul className="bind-list-wrap n-li">
-                {dataArr.map((item:any) =>
-                  <li key={item.id} className="flex align-center fb">
-                    <div className="flex align-center">
-                      <span>{item.key}</span>
-                    </div>
-                    <div>{item.varName}</div>
-                  </li>
-                )}
-              </ul>
-            );
-            // 弹窗
-            void showDialog({
-              title: `已选数据列表`,
-              body,
-              buttons: [
-                Dialog.cancelButton({ label: '关闭' }),
-              ]
-            }).then(result => {
-              if (result.button.accept) {}
-            });
-          })
-        }}
-      />
-    </>
-  );
+            }).then(function(response:any){
+              return response.json();
+            }).then(function(data:any){
+              hideLoading()
+              let dataArr:any = data.binds
+              // 定义你弹窗内部结构
+              const body = (
+                <ul className="bind-list-wrap n-li">
+                  {dataArr.map((item:any) =>
+                    <li key={item.id} className="flex align-center fb">
+                      <div className="flex align-center">
+                        <span>{item.key}</span>
+                      </div>
+                      <div>{item.varName}</div>
+                    </li>
+                  )}
+                </ul>
+              );
+              // 弹窗
+              void showDialog({
+                title: `已选数据列表`,
+                body,
+                buttons: [
+                  Dialog.cancelButton({ label: '关闭' }),
+                ]
+              }).then(result => {
+                if (result.button.accept) {}
+              });
+            })
+          }}
+        />
+      </>
+    );
+  }
 }
+
 
 /**
  * A class that exposes the running terminal and kernel sessions.
@@ -567,10 +571,6 @@ export class RunningSessions extends ReactWidget {
   private _session: Session.ISession;
 }
 
-
-//
-
-//
 
 /**
  * The namespace for the `RunningSessions` class statics.
