@@ -147,27 +147,33 @@ type SessionProps<M> = {
   labelTitle?: (model: M) => string;
 
   /**
-   * 是否显示按钮
-   */
-  isShowButton: boolean;
-
-  /**
-   * 操作的id
-   */
-  checkedId: string;
-
-  /**
    * Flag that sets whether it sessions should be displayed.
    */
   available: boolean;
 };
 
-// declare function getCookie(domReadyCallback: (name:string) => any): any
 /**
  * PExecute and handle replies.
  */
+interface A extends Session.IModel{
+  isShow?: boolean
+}
 
-function Item<M>(props: SessionProps<M> & { model: M }) {
+let checkedArr:any = []
+
+function addArrFunc(arr:any, arg:any) {
+  let flag:boolean = true
+  for (let i in arr) {
+    if (arr[i].id === arg.id) {
+      arr.splice(i,1,arg)
+      flag = false
+      break;
+    }
+  }
+  if (flag) arr.push(arg)
+}
+
+function Item<M extends A>(props: SessionProps<M> & { model: M }) {
   const { model } = props;
   return (
     <li className={ITEM_CLASS}>
@@ -181,14 +187,14 @@ function Item<M>(props: SessionProps<M> & { model: M }) {
       <button
         className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
         onClick={() => props.unbind(model)}
-        style={{display:props.isShowButton ? 'none' : props.label(model) == props.checkedId ? 'block':'none'}}
+        style={{ display: props.model.isShow ? 'block' : 'none'}}
       >
         解绑
       </button>
       <button
         className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
         onClick={() => props.bind(model)}
-        style={{display:props.isShowButton ? 'block' : props.label(model) == props.checkedId ? 'none':'block'}}
+        style={{ display: props.model.isShow ? 'none' : 'block'}}
       >
         绑定
       </button>
@@ -202,7 +208,7 @@ function Item<M>(props: SessionProps<M> & { model: M }) {
   );
 }
 
-function ListView<M>(props: { models: M[] } & SessionProps<M>) {
+function ListView<M extends A>(props: { models: M[] } & SessionProps<M>) {
   const { models, ...rest } = props;
   return (
     <ul className={LIST_CLASS}>
@@ -213,12 +219,13 @@ function ListView<M>(props: { models: M[] } & SessionProps<M>) {
   );
 }
 
-function List<M>(props: SessionProps<M>) {
+function List<M extends A>(props: SessionProps<M>) {
   const initialModels = toArray(props.manager.running());
   const filterRunning = props.filterRunning || (_ => true);
   function render(models: Array<M>) {
     return <ListView models={models.filter(filterRunning)} {...props} />;
   }
+
   if (!props.available) {
     return render(initialModels);
   }
@@ -227,7 +234,16 @@ function List<M>(props: SessionProps<M>) {
       signal={props.manager.runningChanged}
       initialArgs={initialModels}
     >
-      {(sender: any, args: Array<M>) => render(args)}
+      {(sender: any, args: Array<M>) => {
+        checkedArr.forEach((e:any, i:any) => {
+          args.forEach((m:any, n:any) => {
+            if (e.id === m.id) {
+              args.splice(n,1,e)
+            }
+          })
+        })
+        return render(args)
+      }}
     </UseSignal>
   );
 }
@@ -274,7 +290,7 @@ function bindToBackend(parmas: any) {
  *
  * It is specialized for each based on it's props.
  */
-function Section<M>(props: SessionProps<M>) {
+function Section<M extends A>(props: SessionProps<M>) {
   return (
     <div className={SECTION_CLASS}>
       {props.available && (
@@ -293,7 +309,6 @@ function Section<M>(props: SessionProps<M>) {
 }
 
 interface IRunningSessionsProps {
-  session:Session.ISession;
   manager: ServiceManager.IManager;
   sessionOpenRequested: Signal<RunningSessions, Session.IModel>;
 }
@@ -303,11 +318,10 @@ interface IHomePageState {
   name: string
 }
 
-
 class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHomePageState> {
   constructor(props:IRunningSessionsProps) {
     super(props);
-    this.state = { displayStyle: true, name: ''};
+    this.state = { displayStyle: false, name: ''};
   }
   render() {
     const { manager, sessionOpenRequested } = this.props;
@@ -332,7 +346,6 @@ class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHo
           }}
           label={m => m.name || PathExt.basename(m.path)}
           available={true}
-          isShowButton={this.state.displayStyle}
           labelTitle={m => {
             let kernelName = m.kernel.name;
             if (manager.specs) {
@@ -341,7 +354,6 @@ class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHo
             }
             return `Path: ${m.path}\nKernel: ${kernelName}`;
           }}
-          checkedId={this.state.name}
           unbind={m => {
             const _self = this;
             sessionOpenRequested.emit(m)
@@ -354,17 +366,16 @@ class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHo
               let a:any = msg.content
               if (a.text && a.text.indexOf('quit successed') >  -1) {
                 Toast.success('解绑成功！',2000,()=>{})
+                m.isShow = false
                 _self.setState({
-                  displayStyle: true,
+                  displayStyle: false,
                 });
-                _self.setState({
-                  name:m.path,
-                });
+                addArrFunc(checkedArr,m)
               }
               if (a.text && a.text.indexOf('quit fails') >  -1) {
                 Toast.error('解绑失败！',2000,()=>{})
               }
-            };
+            }
           }}
           bind={m => {
             const _self = this;
@@ -469,13 +480,12 @@ class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHo
                         datasets: bindDatasets
                       })
 
+                      m.isShow = _self.state.displayStyle
+                      m.isShow = true
                       _self.setState({
-                        displayStyle: false,
+                        displayStyle: true,
                       });
-                      _self.setState({
-                        name:m.path,
-                      });
-
+                      addArrFunc(checkedArr,m)
                       Toast.success('绑定成功！',2000,()=>{})
                     }
                     if (a.text && a.text.indexOf('binding fails') >  -1){
@@ -552,7 +562,6 @@ export class RunningSessions extends ReactWidget {
   protected render() {
     return (
       <RunningSessionsComponent
-        session={this._session}
         manager={this.options.manager}
         sessionOpenRequested={this._sessionOpenRequested}
       />
@@ -568,7 +577,6 @@ export class RunningSessions extends ReactWidget {
 
   private _sessionOpenRequested = new Signal<this, Session.IModel>(this);
   private options: RunningSessions.IOptions;
-  private _session: Session.ISession;
 }
 
 
