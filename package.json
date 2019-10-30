@@ -1,7 +1,7 @@
 {
-  "name": "qhy-binding-v7",
+  "name": "jupyterlab-bind-ext",
   "version": "0.1.1",
-  "description": "111",
+  "description": "juputerlab的绑定插件",
   "keywords": [
     "jupyter",
     "jupyterlab",

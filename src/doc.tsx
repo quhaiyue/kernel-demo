@@ -161,6 +161,10 @@ interface A extends Session.IModel{
 
 let checkedArr:any = []
 
+const url = window.location.href;
+
+const baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
+
 function addArrFunc(arr:any, arg:any) {
   let flag:boolean = true
   for (let i in arr) {
@@ -201,8 +205,9 @@ function Item<M extends A>(props: SessionProps<M> & { model: M }) {
       <button
         className={`${SHUTDOWN_BUTTON_CLASS} jp-mod-styled`}
         onClick={() => props.getBoundData(model)}
+        style={{ display: props.model.isShow ? 'block' : 'none'}}
       >
-        数据
+        已绑定数据
       </button>
     </li>
   );
@@ -264,8 +269,6 @@ function getCookie (name:any){
  * 向backend发送bind数据
  */
 function bindToBackend(parmas: any) {
-  let url = window.location.href
-  let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
   fetch(baseUrl + 'api/binds/0',{
     method: "POST",
     body: JSON.stringify(parmas),
@@ -281,6 +284,50 @@ function bindToBackend(parmas: any) {
       console.log('绑定信息传递后台成功！')
     }
   })
+}
+
+/**
+ * 获取可选数据列表
+ */
+function getDataFunc() {
+  const getData = new Promise((resolve, reject) => {
+    fetch(baseUrl + 'api/datasets/list?pageNo=1&pageSize=999&isPublic=2',{
+      method: 'get',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json',
+        'X-Request-With': 'XMLHttpRequest'
+      }
+    }).then(function(response:any){
+      console.log(response)
+      return response.json();
+    }).then(function(data:any){
+      resolve(data)
+    })
+  })
+  return getData
+}
+
+/**
+ * 获取选中数据列表
+ */
+function getCheckedDataFunc(a:any) {
+  const getCheckedData = new Promise((resolve, reject) => {
+    fetch(baseUrl + 'api/binds/0?notebookId='+getCookie('username')+'@'+a.path,{
+      method: 'get',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json',
+        'X-Request-With': 'XMLHttpRequest'
+      }
+    }).then(function(response:any){
+      console.log(response)
+      return response.json();
+    }).then(function(data:any){
+      resolve(data)
+    })
+  })
+  return getCheckedData
 }
 
 
@@ -315,13 +362,12 @@ interface IRunningSessionsProps {
 
 interface IHomePageState {
   displayStyle: boolean;
-  name: string
 }
 
 class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHomePageState> {
   constructor(props:IRunningSessionsProps) {
     super(props);
-    this.state = { displayStyle: false, name: ''};
+    this.state = { displayStyle: false };
   }
   render() {
     const { manager, sessionOpenRequested } = this.props;
@@ -379,126 +425,149 @@ class RunningSessionsComponent extends React.Component<IRunningSessionsProps,IHo
           }}
           bind={m => {
             const _self = this;
-            let url = window.location.href;
-            let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
             let hideLoading =  Toast.loading('加载中...',0, ()=>{})
             var posts: any[] = []
-            fetch(baseUrl + 'api/datasets/list?pageNo=1&pageSize=999&isPublic=2',{
-              method: 'get',
-              headers: {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json',
-                'X-Request-With': 'XMLHttpRequest'
-              }
-            }).then(function(response:any){
-              console.log(response)
-              return response.json();
-            }).then(function(data:any){
-              hideLoading()
-              let dataArr = data.datasets
-              for (let i in dataArr) {
-                for (let n in dataArr[i].samples) {
-                  let obj:any = {}
-                  obj.id = dataArr[i].samples[n].datasetsId
-                  obj.dataSetId = dataArr[i].dataSourceId
-                  obj.key = dataArr[i].samples[n].key
-                  obj.dataSetName = dataArr[i].dataSourceName
-                  obj.dsId = dataArr[i].samples[n].dsId
-                  obj.userId = dataArr[i].userId
-                  obj.username = dataArr[i].username
-                  posts.push(obj)
+            // 定义所选数组
+            let checkDataArr:any = []
+            Promise.all([getDataFunc(), getCheckedDataFunc(m)])
+              .then((result) => {
+                hideLoading()
+                console.log(result);
+                let data:any = result[0]
+                let checkedData:any = result[1]
+                let dataArr = data.datasets
+                // 将返回的数据变形
+                for (let i in dataArr) {
+                  for (let n in dataArr[i].samples) {
+                    let obj:any = {}
+                    obj.id = dataArr[i].samples[n].datasetsId
+                    obj.dataSetId = dataArr[i].dataSourceId
+                    obj.key = dataArr[i].samples[n].key
+                    obj.dataSetName = dataArr[i].dataSourceName
+                    obj.dsId = dataArr[i].samples[n].dsId
+                    obj.userId = dataArr[i].userId
+                    obj.username = dataArr[i].username
+                    posts.push(obj)
+                  }
                 }
-              }
-              posts.map((e) => {
-                e.isChecked = false;
-                e.varName = '';
-              });
-              // 定义所选数组
-              let checkDataArr:any = []
-
-              // 定义你弹窗内部结构
-              const body = (
-                <ul className="bind-list-wrap n-li">
-                  {posts.map((item) =>
-                    <li key={item.id} className="flex align-center fb">
-                      <div className="flex align-center">
-                        <input type="checkbox" onChange={()=>{
-                          item.isChecked = !item.isChecked
-                          if (item.isChecked) {
-                            checkDataArr.push(item)
-                          } else {
-                            for (let i in checkDataArr) {
-                              if (checkDataArr[i].id === item.id) {
-                                checkDataArr.splice(i,1)
-                              }
-                            }
-                          }
-                        }}/>
-                        <span>{item.key}</span>
-                      </div>
-                      <input type="text" onChange={(e) => {
-                        item.varName = e.target.value
-                      }}/>
-                    </li>
-                  )}
-                </ul>
-              );
-              // 弹窗
-              void showDialog({
-                title: `数据列表`,
-                body,
-                buttons: [
-                  Dialog.cancelButton({ label: '取消' }),
-                  Dialog.warnButton({ label: '绑定' })
-                ]
-              }).then(result => {
-                let arr: any = [];
-                let bindDatasets: any = [];
-                for (let v in checkDataArr) {
-                  let str = '';
-                  let obj = {id:any,varName:any};
-                  str = '("' + checkDataArr[v].varName + '", ' + checkDataArr[v].dsId + ', ' + checkDataArr[v].dataSetId + ', ' + checkDataArr[v].id + ')'
-                  obj.id = checkDataArr[v].id
-                  obj.varName = checkDataArr[v].varName
-                  arr.push(str)
-                  bindDatasets.push(obj)
-                }
-                let code = '% bind --task="' + getCookie('username') +'@'+ m.path + '" --sources=[' + arr.join(',') + ']'
-                if (result.button.accept) {
-                  sessionOpenRequested.emit(m)
-                  let future = manager.sessions.connectTo(m).kernel.requestExecute({code: code});
-                  future.done.then(() => {
-                    console.log('Future is fulfilled');
-                  });
-                  future.onIOPub = msg => {
-                    console.log(msg.content); // Print rich output data.
-                    let a:any = msg.content
-                    if (a.text && a.text.indexOf('bind successed') >  -1){
-                      bindToBackend({
-                        action: 'bind',
-                        notebookId: getCookie('username') +'@'+ m.path,
-                        datasets: bindDatasets
-                      })
-
-                      m.isShow = _self.state.displayStyle
-                      m.isShow = true
-                      _self.setState({
-                        displayStyle: true,
-                      });
-                      addArrFunc(checkedArr,m)
-                      Toast.success('绑定成功！',2000,()=>{})
+                // 添加isChecked 和 varName字段
+                posts.map((e) => {
+                  e.isChecked = false;
+                  e.varName = '';
+                  checkedData.binds.map((m:any) => {
+                    if (e.id === m.id) {
+                      e.isChecked = true;
+                      e.varName = m.varName;
+                      checkDataArr.push(e)
                     }
-                    if (a.text && a.text.indexOf('binding fails') >  -1){
-                      Toast.error('绑定失败！',2000,()=>{})
-                    }
-                  };
+                  })
+                });
+                // 定义state接口
+                interface ICheckedState {
+                  checked: boolean;
+                  varName: string;
                 }
-              });
-            })
+                // body内容
+                class LiItem extends React.Component<{},ICheckedState>{
+                  constructor(props:{}) {
+                    super(props)
+                    this.state = { checked: true, varName: ''}
+                  }
+                  render(){
+                    return (
+                      <ul className="bind-list-wrap n-li">
+                        {posts.map((item) =>
+                          <li key={item.id} className="flex align-center fb">
+                            <div className="flex align-center">
+                              <input type="checkbox" checked={item.isChecked} onChange={()=>{
+                                item.isChecked = item.isChecked ? !this.state.checked : this.state.checked
+                                this.setState({
+                                  checked: true,
+                                })
+                                if (item.isChecked) {
+                                  checkDataArr.push(item)
+                                } else {
+                                  for (let i in checkDataArr) {
+                                    if (checkDataArr[i].id === item.id) {
+                                      checkDataArr.splice(i,1)
+                                    }
+                                  }
+                                }
+                              }}/>
+                              <span>{item.key}</span>
+                            </div>
+                            <input type="text" value={item.varName} onChange={(e) => {
+                              item.varName = this.state.varName
+                              item.varName = e.target.value
+                              this.setState({
+                                varName: item.varName,
+                              })
+                            }}/>
+                          </li>
+                        )}
+                      </ul>
+                    )
+                  }
+                }
+
+                // 定义你弹窗内部结构
+                const body = (
+                  <LiItem></LiItem>
+                );
+                // 弹窗
+                void showDialog({
+                  title: `数据列表`,
+                  body,
+                  buttons: [
+                    Dialog.cancelButton({ label: '取消' }),
+                    Dialog.warnButton({ label: '绑定' })
+                  ]
+                }).then(result => {
+                  let arr: any = [];
+                  let bindDatasets: any = [];
+                  for (let v in checkDataArr) {
+                    let str = '';
+                    let obj = {id:any,varName:any};
+                    str = '("' + checkDataArr[v].varName + '", ' + checkDataArr[v].dsId + ', ' + checkDataArr[v].dataSetId + ', ' + checkDataArr[v].id + ')'
+                    obj.id = checkDataArr[v].id
+                    obj.varName = checkDataArr[v].varName
+                    arr.push(str)
+                    bindDatasets.push(obj)
+                  }
+                  let code = '% bind --task="' + getCookie('username') +'@'+ m.path + '" --sources=[' + arr.join(',') + ']'
+                  if (result.button.accept) {
+                    sessionOpenRequested.emit(m)
+                    let future = manager.sessions.connectTo(m).kernel.requestExecute({code: code});
+                    future.done.then(() => {
+                      console.log('Future is fulfilled');
+                    });
+                    future.onIOPub = msg => {
+                      console.log(msg.content); // Print rich output data.
+                      let a:any = msg.content
+                      if (a.text && a.text.indexOf('bind successed') >  -1){
+                        bindToBackend({
+                          action: 'bind',
+                          notebookId: getCookie('username') +'@'+ m.path,
+                          datasets: bindDatasets
+                        })
+
+                        m.isShow = _self.state.displayStyle
+                        m.isShow = true
+                        _self.setState({
+                          displayStyle: true,
+                        });
+                        addArrFunc(checkedArr,m)
+                        Toast.success('绑定成功！',2000,()=>{})
+                      }
+                      if (a.text && a.text.indexOf('binding fails') >  -1){
+                        Toast.error('绑定失败！',2000,()=>{})
+                      }
+                    };
+                  }
+                });
+              })
           }}
           getBoundData={m => {
-            let url = window.location.href
-            let baseUrl = url.indexOf('jupyter') > -1 ? url.substring(url.indexOf('jupyter'), 0) : url.substring(url.indexOf('lab'), 0)
             let hideLoading =  Toast.loading('加载中...',0, ()=>{})
             fetch(baseUrl + 'api/binds/0?notebookId='+getCookie('username')+'@'+m.path,{
               method: 'get',
